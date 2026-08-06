@@ -1,12 +1,14 @@
-# 📘 README — Script (Pagination + Incremental)
+# 📘 README — Sync vs Async API Calls
 
-This script performs a **full load** of books using pagination and then an **incremental load** using a watermark.
+This script compares **synchronous** API calls vs **asynchronous** calls using `asyncio.gather` and `asyncio.to_thread`. It fetches the result count for several Open Library subjects and prints both timings to show that async is faster.
 
-### How it works
-- Loops pages until empty or page cap  
-- Collects all books (full load)  
-- Tracks watermark = newest publish year  
-- Incremental run fetches only books newer than the watermark
+### What it does
+- Makes multiple API calls **one at a time** (sync)
+- Makes the same calls **concurrently** (async)
+- Times both approaches
+- Prints results + timing comparison
+
+You can explore asyncio gather or asyncio.to_thread.
 
 ### Requirements
 ```bash
@@ -15,5 +17,5 @@ pip install requests
 
 ### Run
 ```bash
-python ingest.py
+python sync_async.py
 ```

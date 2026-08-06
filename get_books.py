@@ -1,84 +1,66 @@
+import time
 import requests
+import asyncio
 
-def get_books(subject, page):
-    url = "https://openlibrary.org/search.json"
-    params = {"subject": subject, "page": page}
+SUBJECTS = ["science", "history", "art", "math", "biology", "technology"]
 
+def fetch_count(subject):
+    """Sync API call to get result count."""
     try:
-        resp = requests.get(url, params=params, timeout=5)
+        resp = requests.get(
+            "https://openlibrary.org/search.json",
+            params={"subject": subject},
+            timeout=5
+        )
         resp.raise_for_status()
         data = resp.json()
+        return data.get("numFound", 0)
     except Exception as e:
-        print(f"API call failed on page {page}: {e}")
-        return []
-
-    books = []
-    for doc in data.get("docs", []):
-        books.append({
-            "title": doc.get("title"),
-            "author": doc.get("author_name", ["Unknown"])[0],
-            "first_publish_year": doc.get("first_publish_year"),
-            "rating": doc.get("ratings_average")
-        })
-
-    return books
+        print(f"Error fetching {subject}: {e}")
+        return 0
 
 
-def full_load(subject, page_cap=5):
-    """Loop pages until empty or cap reached."""
-    all_books = []
-    newest_year = 0
-
-    for page in range(1, page_cap + 1):
-        page_books = get_books(subject, page)
-        if not page_books:
-            print(f"Stopping: empty page at {page}")
-            break
-
-        all_books.extend(page_books)
-
-        # Track watermark (max publish year)
-        for b in page_books:
-            year = b.get("first_publish_year") or 0
-            if year > newest_year:
-                newest_year = year
-
-    return all_books, newest_year
+# -------------------------
+# SYNC VERSION
+# -------------------------
+def sync_fetch():
+    start = time.perf_counter()
+    results = {sub: fetch_count(sub) for sub in SUBJECTS}
+    elapsed = time.perf_counter() - start
+    return results, elapsed
 
 
-def incremental_load(subject, watermark):
-    """Pull only books newer than the watermark."""
-    new_books = []
-    page = 1
+# -------------------------
+# ASYNC VERSION
+# -------------------------
+async def async_fetch():
+    start = time.perf_counter()
 
-    while True:
-        page_books = get_books(subject, page)
-        if not page_books:
-            break
+    # Run sync function in threads concurrently
+    tasks = [
+        asyncio.to_thread(fetch_count, sub)
+        for sub in SUBJECTS
+    ]
 
-        for b in page_books:
-            year = b.get("first_publish_year") or 0
-            if year > watermark:
-                new_books.append(b)
+    counts = await asyncio.gather(*tasks)
+    results = dict(zip(SUBJECTS, counts))
 
-        page += 1
-
-    return new_books
+    elapsed = time.perf_counter() - start
+    return results, elapsed
 
 
+# -------------------------
+# MAIN
+# -------------------------
 if __name__ == "__main__":
-    # --- FULL LOAD ---
-    books, watermark = full_load("science", page_cap=5)
-    print(f"Full load count: {len(books)}")
-    print(f"Watermark (newest publish year): {watermark}")
+    # Sync
+    sync_results, sync_time = sync_fetch()
+    print("SYNC RESULTS:", sync_results)
+    print(f"Sync time: {sync_time:.2f} seconds\n")
 
-    print("\nSample full-load books:")
-    for b in books[:5]:
-        print(f"{b['title']} — {b['author']} ({b['first_publish_year']})")
+    # Async
+    async_results, async_time = asyncio.run(async_fetch())
+    print("ASYNC RESULTS:", async_results)
+    print(f"Async time: {async_time:.2f} seconds\n")
 
-    # --- INCREMENTAL RUN ---
-    inc_books = incremental_load("science", watermark)
-    print(f"\nIncremental new books found: {len(inc_books)}")
-
-    for b in inc_books[:5]:
-        print(f"{b['title']} — {b['author']} ({b['first_publish_year']})")
+    print("Async is faster:", async_time < sync_time)
