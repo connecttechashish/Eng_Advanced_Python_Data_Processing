@@ -1,26 +1,21 @@
-# 📘 README — Sync vs Async API Calls
+# 📘 README — Serial vs Parallel CPU Scoring
 
-This script compares **synchronous** API calls vs **asynchronous** calls using `asyncio.gather` and `asyncio.to_thread`. It fetches the result count for several Open Library subjects and prints both timings to show that async is faster.
+This script compares **serial** CPU-heavy scoring with **parallel** execution using `ProcessPoolExecutor`. It runs a per‑genre scoring function both ways, times them, prints core count, and confirms results match.
 
 ### What it does
-- Makes multiple API calls **one at a time** (sync)
-- Makes the same calls **concurrently** (async)
-- Times both approaches
-- Prints results + timing comparison
-
-You can explore asyncio gather or asyncio.to_thread.
-
-### Requirements
-```bash
-pip install requests
-```
+- Serial scoring (one genre at a time)  
+- Parallel scoring (across CPU cores)  
+- Timed comparison  
+- Identical results check  
+- Core count printed  
+- Parallel faster on multi‑core machines  
 
 ### Run
 ```bash
-python sync_async.py
+python get_books.py
 ```
 
-###Output - Sync vs Async API Calls
+### Output - Sync vs Async API Calls
 SYNC RESULTS: {'science': 585042, 'history': 3491139, 'art': 600172, 'math': 1043, 'biology': 56550, 'technology': 167663}
 Sync time: 17.43 seconds
 
@@ -29,3 +24,12 @@ ASYNC RESULTS: {'science': 585042, 'history': 0, 'art': 600172, 'math': 1043, 'b
 Async time: 6.36 seconds
 
 Async is faster: True
+
+### Output - Serial vs Parallel CPU Scoring
+CPU cores detected: 12
+
+Serial time:   0.53 sec
+Parallel time: 0.49 sec
+
+Results identical: True
+Parallel faster: True

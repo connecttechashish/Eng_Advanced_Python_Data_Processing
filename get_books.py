@@ -1,50 +1,36 @@
 import time
-import requests
-import asyncio
+import math
+import os
+from concurrent.futures import ProcessPoolExecutor
 
-SUBJECTS = ["science", "history", "art", "math", "biology", "technology"]
+GENRES = ["science", "history", "art", "math", "biology", "technology"]
 
-def fetch_count(subject):
-    """Sync API call to get result count."""
-    try:
-        resp = requests.get(
-            "https://openlibrary.org/search.json",
-            params={"subject": subject},
-            timeout=5
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("numFound", 0)
-    except Exception as e:
-        print(f"Error fetching {subject}: {e}")
-        return 0
+def heavy_score(genre):
+    """CPU-heavy scoring function."""
+    total = 0
+    for i in range(300_000):
+        total += math.sqrt(i) * math.sin(i)
+    return genre, total
 
 
 # -------------------------
-# SYNC VERSION
+# SERIAL VERSION
 # -------------------------
-def sync_fetch():
+def run_serial():
     start = time.perf_counter()
-    results = {sub: fetch_count(sub) for sub in SUBJECTS}
+    results = dict(heavy_score(g) for g in GENRES)
     elapsed = time.perf_counter() - start
     return results, elapsed
 
 
 # -------------------------
-# ASYNC VERSION
+# PARALLEL VERSION
 # -------------------------
-async def async_fetch():
+def run_parallel():
     start = time.perf_counter()
-
-    # Run sync function in threads concurrently
-    tasks = [
-        asyncio.to_thread(fetch_count, sub)
-        for sub in SUBJECTS
-    ]
-
-    counts = await asyncio.gather(*tasks)
-    results = dict(zip(SUBJECTS, counts))
-
+    with ProcessPoolExecutor() as pool:
+        out = pool.map(heavy_score, GENRES)
+    results = dict(out)
     elapsed = time.perf_counter() - start
     return results, elapsed
 
@@ -53,14 +39,13 @@ async def async_fetch():
 # MAIN
 # -------------------------
 if __name__ == "__main__":
-    # Sync
-    sync_results, sync_time = sync_fetch()
-    print("SYNC RESULTS:", sync_results)
-    print(f"Sync time: {sync_time:.2f} seconds\n")
+    print(f"CPU cores detected: {os.cpu_count()}")
 
-    # Async
-    async_results, async_time = asyncio.run(async_fetch())
-    print("ASYNC RESULTS:", async_results)
-    print(f"Async time: {async_time:.2f} seconds\n")
+    serial_results, serial_time = run_serial()
+    parallel_results, parallel_time = run_parallel()
 
-    print("Async is faster:", async_time < sync_time)
+    print(f"\nSerial time:   {serial_time:.2f} sec")
+    print(f"Parallel time: {parallel_time:.2f} sec")
+
+    print("\nResults identical:", serial_results == parallel_results)
+    print("Parallel faster:", parallel_time < serial_time)
