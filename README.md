@@ -33,3 +33,21 @@ Parallel time: 0.49 sec
 
 Results identical: True
 Parallel faster: True
+
+
+
+
+
+### Chunked Revenue + Memory Reduction
+This script streams sales.csv in chunks to compute total revenue by genre without loading the full file. It also takes one chunk, converts numeric columns to float32 and the genre column to category, and prints memory usage before and after to show the reduction.
+
+### Run
+```bash
+python stream_file.py
+```
+
+### Output - Chunked Revenue + Memory Reduction
+Revenue by genre: {'Biography': 90250648.46, 'Children': 89690096.86, 'Fiction': 90348684.3, 'History': 90321844.77000001, 'Mystery': 89818082.31, 'Romance': 90431882.32, 'Sci-Fi': 89920073.19999999, 'Self-Help': 89879284.97}
+Memory before: 15,746,342 bytes
+Memory after:  12,572,135 bytes
+Reduction:     3,174,207 bytes
